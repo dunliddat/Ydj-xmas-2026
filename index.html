@@ -166,8 +166,8 @@ footer{padding:110px 0 170px;color:var(--mute);font:400 .6rem/1.6 var(--px)}
 <script>
 // ===== EDIT ME =====
 const PARTY=new Date('2026-12-19T19:00:00+08:00');
-const DB_URL='';  // paste your Firebase Realtime Database URL here (see SETUP.md) so hearts and notes are shared
-const TRACKS=[{title:'Wish You A Merry Christmas',artist:'A Jolly YDJC Christmas',src:'music/wish-you-a-merry-christmas.mp3'}];
+const DB_URL='https://ydjc-db2f1-default-rtdb.asia-southeast1.firebasedatabase.app';
+const TRACKS=[{title:'Wish You A Merry Christmas',artist:'A Jolly YDJC Christmas',src:'wish-you-a-merry-christmas.mp3',alt:['music/wish-you-a-merry-christmas.mp3','Wish_You_A_Merry_Christmas.mp3','wish-you-a-merry-christmas%202.mp3']}];
 const MENU={
   'Starters':[['Winter soup','Your description here'],['Cheese board','Your description here']],
   'Mains':[['Main dish','Your description here'],['Side dish','Your description here']],
@@ -210,9 +210,10 @@ const dk=(h,f)=>'#'+[1,3,5].map(i=>Math.min(255,Math.round(parseInt(h.substr(i,2
 
 // ----- music -----
 const au=new Audio(),pl=$('pl');let ti=0,AC,an,data;
-function load(i){const t=TRACKS[i];$('tt').textContent=t.title;$('ta').textContent=t.artist||'';au.src=t.src||''}
-function setup(){if(AC||!(/^(data|blob):/.test(au.src)||au.src.indexOf(location.origin)===0))return;try{AC=new(window.AudioContext||window.webkitAudioContext)();const s=AC.createMediaElementSource(au);an=AC.createAnalyser();an.fftSize=256;data=new Uint8Array(an.frequencyBinCount);s.connect(an);an.connect(AC.destination)}catch(e){AC=an=null}}
-function play(){if(!TRACKS[ti].src)return;setup();if(AC&&AC.resume)AC.resume();au.play().catch(()=>{})}
+let altI=0;function load(i){altI=0;const t=TRACKS[i];$('tt').textContent=t.title;$('ta').textContent=t.artist||'';au.src=t.src||''}
+function setup(){if(/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1))return;if(AC||!(/^(data|blob):/.test(au.src)||au.src.indexOf(location.origin)===0))return;try{AC=new(window.AudioContext||window.webkitAudioContext)();const s=AC.createMediaElementSource(au);an=AC.createAnalyser();an.fftSize=256;data=new Uint8Array(an.frequencyBinCount);s.connect(an);an.connect(AC.destination)}catch(e){AC=an=null}}
+let wantPlay=false;function play(){wantPlay=true;if(!TRACKS[ti].src)return;setup();if(AC&&AC.resume)AC.resume();const pr=au.play();if(pr&&pr.catch)pr.catch(()=>{$('ta').textContent='Tap the play button to start the music'})}
+au.onerror=()=>{const t=TRACKS[ti];if(t.alt&&altI<t.alt.length){au.src=t.alt[altI++];if(!au.paused||wantPlay)play()}else $('ta').textContent='Music file not found: '+t.src};
 au.onplay=()=>pl.classList.add('on');au.onpause=()=>pl.classList.remove('on');
 au.loop=TRACKS.length<2;au.onended=()=>{ti=(ti+1)%TRACKS.length;load(ti);play()};
 $('pp').onclick=()=>au.paused?play():au.pause();
@@ -417,7 +418,7 @@ const db={collection:p=>({onSnapshot:(cb)=>{const pull=async()=>{try{const r=awa
 doc:path=>({set:async d=>{const r=await fetch(base+'/'+path+'.json',{method:'PUT',body:JSON.stringify(d)});if(!r.ok)throw{code:'unavailable'};subs.forEach(f=>f())}})};
 return{db,user:{id:async()=>id,isOwner:()=>false,can:()=>true}}}
 async function getBackend(){if(window.claude&&claude.use){try{const db=await claude.use('db'),user=await claude.use('user');if(db&&user)return{db,user}}catch(e){}}
-if(DB_URL){try{return restShim()}catch(e){}}return null}
+if(typeof DB_URL!=='undefined'&&DB_URL){try{return restShim()}catch(e){}}return null}
 const tabs=$('tabs'),menu=$('menu');
 const HV={me:null,mine:{},all:new Map(),db:null,t:null,busy:false},hk=(c,n)=>(c+'|'+n).replace(/[.$#\[\]\/]/g,'_');
 const tot=k=>{let n=0;HV.all.forEach(c=>{n+=c[k]||0});return n};
